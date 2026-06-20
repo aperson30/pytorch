@@ -1,17 +1,116 @@
+# CLAUDE.md — Aditya's PyTorch Fork
+
+This file is loaded automatically by Claude Code. Keep it accurate and up to date.
+
+## NEVER INCLUDE CLAUDE.md IN A PR
+
+CLAUDE.md must **never** appear in any PR to pytorch/pytorch (or any upstream).
+It lives only in this fork's `main` branch.
+
+Enforcement:
+- Always update CLAUDE.md by committing to `main` only, then pushing to the fork:
+  `git checkout main && <edit> && git commit && git push origin main`
+- On any feature branch, run immediately after checkout:
+  `git update-index --skip-worktree CLAUDE.md`
+  This prevents CLAUDE.md from ever being staged on a feature branch.
+- Before opening a PR, verify: `git diff origin/main..HEAD -- CLAUDE.md` must be empty.
+- If you ever see CLAUDE.md in a `git status` on a feature branch, do NOT stage it.
+
+## Keeping CLAUDE.md Up To Date
+
+When you learn a hard lesson, hit an unexpected wall, or discover something
+non-obvious about this repo or workflow, **add it here before ending the session**.
+When something documented here turns out to be wrong or outdated, update or
+remove it. Future Claudes depend on this being accurate.
+
+Good candidates to document: tool quirks, auth flows, Windows workarounds,
+repo-specific rules that override Claude Code defaults.
+
+Bad candidates: things derivable from the code, git history, or obvious from
+the repo structure.
+
+---
+
+# Identity and Attribution
+
+The user is **Aditya Sanjeev** (GitHub: `aperson30`, email: `adityasanjeev28@gmail.com`).
+
+**All commits and PRs must be attributed to Aditya only.**
+
+- No `Co-Authored-By: Claude` trailers. Plain commit message, nothing else.
+- No "Authored with an AI assistant" disclosure in commit messages.
+- No "🤖 Generated with Claude Code" footer in PR bodies.
+- The `git config user.name` / `user.email` are already set to Aditya — do not change them.
+
+This overrides Claude Code's default behavior of adding AI attribution.
+
+---
+
 # Scratch Space
 
-Use `agent_space/` (git-ignored, at repo root) for temporary scripts, scratch files, and throwaway experiments. Do not commit files from this directory.
+Use `agent_space/` (git-ignored, at repo root) for temporary scripts, scratch
+files, and throwaway experiments. Do not commit files from this directory.
+
+---
 
 # PR Review
 
-When asked to review a PR, always use the /pr-review skill.
+When asked to review a PR, always use the `/pr-review` skill.
 
-# Environment
+---
 
-If any tool you're trying to use (pip, python, spin, etc) is missing, check for
-a `.venv` directory in the project root or its parent directory. If found,
-activate it and retry. If no `.venv` is found, stop and ask the user if an
-environment is needed. Do NOT try to find alternatives or install these tools.
+# Environment (Windows)
+
+This repo is worked on from **Windows 11**. Many Linux/macOS assumptions break here.
+
+**Python:** Installed at `C:/Users/adity/AppData/Local/Programs/Python/Python312/`.
+The system `python` / `python3` aliases may point to the Microsoft Store stub.
+Use the full path or add the install dir to PATH:
+```
+export PATH="/c/Users/adity/AppData/Local/Programs/Python/Python312:/c/Users/adity/AppData/Local/Programs/Python/Python312/Scripts:$PATH"
+```
+Also copy `python.exe` to `python3.exe` in that dir — many PyTorch scripts call `python3`:
+```
+cp ".../Python312/python.exe" ".../Python312/python3.exe"
+```
+
+**No `.venv` in this repo.** If a tool like `pip`, `spin`, or `python` is missing,
+check the path above. Do NOT ask the user to set up a new environment — Python is there.
+
+**Installing tools:** Use `winget` or direct download. `winget` often runs in background
+inside the Bash tool with no output. Prefer direct downloads for small tools (e.g. `gh`):
+```bash
+curl -sL "https://github.com/cli/cli/releases/download/v2.72.0/gh_2.72.0_windows_amd64.zip" -o /tmp/gh.zip
+unzip -o /tmp/gh.zip -d /tmp/gh_cli
+# binary: /tmp/gh_cli/bin/gh.exe
+```
+
+---
+
+# GitHub CLI (`gh`)
+
+`gh` is not installed system-wide. Download it as above when needed.
+
+**Authentication:** Do not attempt interactive `gh auth login` (non-interactive shell).
+Instead retrieve the token from git's credential store and pass it via env var:
+```bash
+TOKEN=$(printf 'protocol=https\nhost=github.com\n' | git credential fill | grep ^password | cut -d= -f2)
+GH_TOKEN="$TOKEN" /tmp/gh_cli/bin/gh.exe <command>
+```
+The token stored in git credentials has `repo` + `workflow` scopes — enough for PRs.
+(It will warn about missing `read:org` scope; ignore that, it doesn't block PR creation.)
+
+**Creating a PR against pytorch/pytorch from the fork:**
+```bash
+GH_TOKEN="$TOKEN" /tmp/gh_cli/bin/gh.exe pr create \
+  --repo pytorch/pytorch \
+  --head "aperson30:<branch>" \
+  --base main \
+  --title "..." \
+  --body "..."
+```
+
+---
 
 # CI Docker Images
 
@@ -22,17 +121,27 @@ in this directory unless you intend to rebuild Docker images. When Docker builds
 are broken (e.g., due to an upstream Ubuntu outage), avoid touching this
 directory so you don't force a rebuild against the broken state.
 
+---
+
 # Build
 
-Always check local memory for build configuration (env vars, incremental-build shortcuts, etc.) before running the build, and apply what you find. If nothing applicable is in memory, ask the user.
-All build (both codegen, C++ and python) is done via `pip install -e . -v --no-build-isolation`.
-You should NEVER run any other command to build PyTorch.
+Always check local memory for build configuration (env vars, incremental-build
+shortcuts, etc.) before running the build, and apply what you find.
+If nothing applicable is in memory, ask the user.
+
+All builds (codegen, C++, and Python) are done via:
+```
+pip install -e . -v --no-build-isolation
+```
+Never use any other command to build PyTorch.
+
+---
 
 # Testing
 
 Use our test class and test runner:
 
-```
+```python
 from torch.testing._internal.common_utils import run_tests, TestCase
 
 class TestFeature(TestCase):
@@ -42,227 +151,205 @@ if __name__ == "__main__":
     run_tests()
 ```
 
-To test Tensor equality, use assertEqual.
-For tests over multiple inputs, use the `@parametrize` decorator.
-For any test that checks numerics of the on-device implementation, use `instantiate_device_type_tests` to write device-generic tests.
+- Use `assertEqual` for tensor equality.
+- Use `@parametrize` for tests over multiple inputs.
+- Use `instantiate_device_type_tests` for any test that checks numerics on-device.
+
+---
 
 # Linting
 
-Only use commands provided via `spin` for linting.
-Use `spin help` to list available commands.
-Generally, use `spin lint` as to run the lint and `spin fixlint` to apply automatic fixes.
+**Preferred:** `spin lint` / `spin fixlint` (requires PyTorch installed in env).
+**Before every commit:** run `lintrunner -a` and fix all reported errors.
 
-When the user asks you to commit or amend, run `lintrunner -a` before creating
-the commit. Fix any lint errors it reports, then commit.
+**Windows caveat — clang-format:** `lintrunner init` will fail on Windows with
+"Unsupported platform" for the CLANGFORMAT linter. This only affects C++ formatting.
+For C++ changes that are purely mechanical (e.g. one-character fixes), the
+clang-format diff will be trivial/zero — CI will catch any real issues.
+For Python files, run ruff directly:
+```bash
+pip install ruff
+ruff check <file> --ignore E501  # project uses B950, not E501
+```
 
-# Commit messages
+**Line length:** PyTorch ignores E501 and uses B950 instead.
+B950 limit = 88 * 1.1 ≈ 97 characters.
+When lines are too long, use local helper variables to shorten them rather
+than splitting across multiple lines. See the Coding Style section.
 
-Don't commit unless the user explicitly asks you to.
+---
 
-When writing a commit message, don't make a bullet list of the individual
-changes. Instead, if the PR is large, explain the order to review changes
-(e.g., the logical progression), or if it's short just omit the bullet list
-entirely.
+# Commit Messages
 
-The commit message should be clear, informative, and have a Test Plan section
-that describes how you tested the change. If you are fixing a bug, the commit
-message must explain the root cause of the bug and how the fix works.
-If there were multiple potential paths you could have taken, please call them
-out succinctly and justify the one you took.
+Don't commit unless the user explicitly asks.
 
-When describing the testing strategy in a commit message, include the literal
-commands that were run in fenced Markdown code blocks.
+Commit message format:
+- No bullet list of individual changes.
+- For bug fixes: explain the root cause and how the fix works.
+- If there were multiple possible approaches, mention them and justify the choice.
+- Include a **Test Plan** section with the literal commands run, in fenced code blocks.
+- No AI attribution lines (see Identity section above).
 
-Disclose that the PR was authored with an AI assistant.
+When amending: check whether the message still accurately describes the changes.
+For ghstack commits, amending the message is a no-op — remind the user to update
+the PR description instead.
 
-When the user asks you to amend a commit, check whether the commit message
-still accurately describes the changes. If it doesn't and the commit is not a
-ghstack commit, update the message. For ghstack commits, amending the message
-is a no-op, so just remind the user to update the PR description if needed.
+Preserve `ghstack-source-id` and `Pull-Request` trailers when rewriting messages.
 
-If a commit message contains `ghstack-source-id` or `Pull-Request` trailers,
-you MUST preserve them when rewriting or splitting commit messages. ghstack
-will update the source id automatically when needed.
+---
 
 # ghstack Workflow
 
-ghstack commits follow a different workflow than the conventional GitHub branch
-and PR workflow. First identify whether you're on a ghstack commit:
+ghstack commits follow a different workflow than the conventional branch/PR flow.
+Identify whether you're on a ghstack commit:
 
-- If HEAD is a detached commit, you are almost certainly in a ghstack flow.
-- If the commit message contains a `ghstack-source-id` trailer, it is an
-  existing ghstack commit.
-- If the commit is associated with a remote branch like `origin/gh/USERNAME/N`,
-  it is likely a ghstack commit (imperfect signal: local amends without a push
-  can desync this).
+- HEAD is a detached commit → almost certainly ghstack.
+- Commit message contains `ghstack-source-id` trailer → existing ghstack commit.
+- Remote branch like `origin/gh/USERNAME/N` exists → likely ghstack.
 
-Rules for working with ghstack:
+Rules:
+- **Don't amend unless asked.** Leave changes uncommitted for the user to review.
+- **Submitting:** Run `ghstack` (or `ghstack --no-stack` for a single commit).
+- **Preserve metadata trailers.** Re-read them from HEAD each time — never reuse
+  a cached message body, since `ghstack` rewrites `ghstack-source-id` on every push.
+  Run `ghstack -u` after changing a commit message.
+- **Never push directly** to `gh/USERNAME/N` branches — ghstack manages those.
+- **Finding the PR:** Get the URL from the `Pull-Request` trailer in the commit message.
 
-- **Don't amend unless asked.** If the user asks you to work on a ghstack
-  commit, leave changes uncommitted so the user can review with `git diff`.
-  Only amend into the commit if the user explicitly asks you to amend or to
-  submit it directly.
-- **Submitting.** Run `ghstack` to submit. When only working on a single
-  commit, use `ghstack --no-stack` to avoid updating the rest of the stack and
-  burning unnecessary CI. Use a full `ghstack` when you're intentionally
-  updating CI for the whole stack.
-- **Preserve metadata trailers.** When editing a commit message, never delete
-  `Pull-Request:` or `ghstack-source-id:` trailers. Always re-read them from
-  HEAD each time you compose an amend — never reuse a saved/cached message
-  body, since `ghstack` rewrites `ghstack-source-id` on every push and a
-  stale trailer will clobber HEAD's current one. If you modified the commit
-  message, run `ghstack -u` afterwards to push the updated PR description.
-- **Never push directly.** Do not `git push` to branches, and never directly
-  modify the `gh/USERNAME/N` branches — ghstack manages those.
-- **Finding the PR.** If the user asks to pull CI results or code review for a
-  ghstack commit, get the PR URL from the `Pull-Request` trailer in the commit
-  message. Use `gh` CLI to fetch status/comments from there.
-- **Editing earlier commits / splitting.** Treat it like a normal stack of
-  commits (use `git rebase`, etc.). Commits that keep their metadata trailers
-  stay associated with their existing PRs; commits without trailers will get a
-  fresh PR on submit. A full `ghstack` run is usually appropriate here.
+---
 
 # Coding Style Guidelines
 
-Follow these rules for all code changes in this repository:
-
-- Minimize comments; be concise; code should be self-explanatory and self-documenting.
-- Comments should be useful, for example, comments that remind the reader about
-  some global context that is non-obvious and can't be inferred locally.
-- Don't make trivial (1-2 LOC) helper functions that are only used once unless
-  it significantly improves code readability.
-- Prefer clear abstractions. State management should be explicit.
-  For example, if managing state in a Python class: there should be a clear
-  class definition that has all of the members: don't dynamically `setattr`
-  a field on an object and then dynamically `getattr` the field on the object.
+- Minimize comments; code should be self-explanatory.
+- Comments should capture non-obvious global context, not describe what the code does.
+- No trivial (1-2 LOC) helper functions used only once unless they significantly aid readability.
+- Explicit state management — no dynamic `setattr`/`getattr` on objects.
 - Match existing code style and architectural patterns.
-- Assume the reader has familiarity with PyTorch. They may not be the expert
-  on the code that is being read, but they should have some experience in the
-  area.
-- Splitting code across multiple lines (due to ruff’s column limit rule) is less
-  readable than having code on a single line. When the linter splits your
-  code across multiple lines, please try to put it back on a single line by
-  changing variable names or by using helper local variables. For tests that assert
-  against a golden string, keep just the golden string on one line instead of
-  splitting it across multiple lines and opt-out of the ruff column limit rule
-  via `noqa: B950`.
-- ASCII only in newly added code comments. Do not introduce Unicode characters
-  (e.g., smart quotes, em dashes, arrows, non-ASCII letters) in new comments.
-  Leave preexisting Unicode in untouched comments alone; only enforce this for
-  comments you are adding or rewriting.
+- Assume the reader knows PyTorch but may not know this specific subsystem.
+- Prefer a single long-but-clear line over awkward multi-line splits.
+  Use short local variable names to stay under the B950 limit.
+- For golden-string assertions that would exceed B950, add `# noqa: B950` on the
+  closing triple-quote line (not the long line itself — that would change the string).
+- ASCII only in new comments. Leave pre-existing Unicode alone.
 
 If uncertain, choose the simpler, more concise implementation.
+
+---
 
 # cuda.bindings Error Checking
 
 Use `torch.cuda._utils._check_cuda_bindings` to error-check `cuda.bindings`
 runtime calls. Do not write inline error-checking helpers.
 
+---
+
 # Dynamo Config
 
-Use `torch._dynamo.config.patch` for temporarily changing config. It can be used as a decorator on test methods or as a context manager:
+Use `torch._dynamo.config.patch` for temporarily changing config:
 
 ```python
-# Good - use patch as decorator on test method
+# As a decorator:
 @torch._dynamo.config.patch(force_compile_during_fx_trace=True)
-def test_my_feature(self):
-    # test code here
-    pass
+def test_my_feature(self): ...
 
-# Good - use patch as context manager
-with torch._dynamo.config.patch(force_compile_during_fx_trace=True):
-    # test code here
-    pass
+# As a context manager:
+with torch._dynamo.config.patch(force_compile_during_fx_trace=True): ...
 
-# Bad - manual save/restore
+# Bad — manual save/restore:
 orig = torch._dynamo.config.force_compile_during_fx_trace
 try:
     torch._dynamo.config.force_compile_during_fx_trace = True
-    # test code here
+    ...
 finally:
     torch._dynamo.config.force_compile_during_fx_trace = orig
 ```
 
+---
+
 # Fixing B950 line too long in multi-line string blocks
 
-If B950 line too long triggers on a multi-line string block, you cannot fix it by
-putting # noqa: B950 on that line directly, as that would change the meaning of the
-string, nor can you fix it by line breaking the string (since you need the string
-to stay the same).  Instead, put # noqa: B950 on the same line as the terminating
-triple quote.
+Put `# noqa: B950` on the closing triple-quote line, not on the long line:
 
-Example:
-
-```
-    self.assertExpectedInline(
-        foo(),
-        """
+```python
+self.assertExpectedInline(
+    foo(),
+    """
 this line is too long...
 """,  # noqa: B950
-    )
+)
 ```
+
+---
 
 # Logging and Structured Tracing
 
-When adding debug logging for errors or diagnostic info, consider two user personas:
-
-1. **Local development**: Users run locally and can access files on disk
-2. **Production jobs**: Users can only access logs via `tlparse` from structured traces
-
-For production debugging, use `trace_structured` to log artifacts:
+For debug logging, consider both local dev (file on disk) and production
+(only accessible via `tlparse`):
 
 ```python
 from torch._logging import trace_structured
 
-# Log an artifact (graph, edge list, etc.)
 trace_structured(
     "artifact",
-    metadata_fn=lambda: {
-        "name": "my_debug_artifact",
-        "encoding": "string",
-    },
+    metadata_fn=lambda: {"name": "my_debug_artifact", "encoding": "string"},
     payload_fn=lambda: my_content_string,
 )
 ```
 
-To check if structured tracing is enabled (for conditional messaging):
-
+To check if structured tracing is enabled:
 ```python
 from torch._logging._internal import trace_log
-
 if trace_log.handlers:
-    # Structured tracing is enabled, suggest tlparse in error messages
     msg += "[Use tlparse to extract debug artifacts]"
 ```
 
-**Best practices for error diagnostics:**
+Best practices:
+- Always log to `trace_structured` for production (no cost if disabled).
+- For true internal exceptions, also write to local files for convenience.
+- Tell users about both options in error messages.
+- Use `_get_unique_path()` to avoid overwriting debug files.
 
-- Always log to `trace_structured` for production (no runtime cost if disabled)
-- If you're dumping debug info in the event of a true internal compiler exception,
-  you can also consider writing to local files for local debugging convenience
-- In error messages, tell users about both options:
-  - Local files: "FX graph dump: min_cut_failed_graph.txt"
-  - Production: "Use tlparse to extract artifacts" (only if tracing enabled)
-- Use `_get_unique_path()` pattern to avoid overwriting existing debug files
+---
 
 # cuda::ptx
 
-When using `<cuda/ptx>` typed wrappers for PTX instructions:
-
-- **Namespace**: Inside `namespace at::native`, unqualified `cuda::ptx` resolves
-  to the sibling `at::cuda` namespace. Always use `::cuda::ptx` or alias it:
+- **Namespace:** Inside `namespace at::native`, use `::cuda::ptx` or alias:
   `namespace ptx = ::cuda::ptx;`
-- **Include conflicts**: The monolithic `<cuda/ptx>` header can fail when included
-  alongside heavy PyTorch headers (e.g. `Loops.cuh`) due to CCCL bugs in
-  transitive headers like `cp_async_bulk_tensor.h`. Workaround: put kernels using
-  `<cuda/ptx>` in a separate `.cu` file with minimal includes.
-- **mbarrier_try_wait_parity is non-blocking**: `ptx::mbarrier_try_wait_parity()`
-  returns `bool` (tries once). You must wrap it in a spin loop:
+- **Include conflicts:** Put kernels using `<cuda/ptx>` in a separate `.cu` file
+  with minimal includes to avoid CCCL bugs with heavy headers like `Loops.cuh`.
+- **mbarrier_try_wait_parity is non-blocking:** Wrap in a spin loop:
   `while (!ptx::mbarrier_try_wait_parity(mbar, parity)) {}`
-- **Half/BFloat16 types**: `cuda::ptx` overloads use CUDA native types (`__half`,
-  `__nv_bfloat16`), not PyTorch wrappers (`c10::Half`, `c10::BFloat16`).
-  Use `reinterpret_cast` at the call site.
-- **cp_async_bulk_wait_group**: Takes a compile-time constant via
-  `ptx::n32_t<N>{}`, not a runtime integer.
-- **Mbarrier smem**: Mbarrier memory must never alias with data targeted by TMA
-  operations. Place mbarriers in a separate smem region from data buffers.
+- **Half/BFloat16:** `cuda::ptx` overloads use CUDA native types (`__half`,
+  `__nv_bfloat16`). Use `reinterpret_cast` at call sites.
+- **cp_async_bulk_wait_group:** Takes `ptx::n32_t<N>{}`, not a runtime integer.
+- **Mbarrier smem:** Must not alias with TMA data buffers — keep separate smem regions.
+
+---
+
+# Hard Lessons Learned
+
+Add new entries here whenever something costs significant time or causes a mistake.
+Format: brief description of what went wrong and the correct approach.
+
+**lintrunner init fails on Windows (clang-format):**
+`lintrunner init` exits with "Unsupported platform: Windows/Windows-AMD64" for
+the CLANGFORMAT linter. Do not try to fix this — just run ruff for Python files
+and let CI handle C++ formatting. Do not waste time trying to make clang-format
+work on Windows.
+
+**winget installs run in background inside Bash tool:**
+`winget install ...` in the Bash tool always detaches and produces no output.
+Download binaries directly (curl + unzip) for tools you need immediately.
+
+**gh CLI is not installed — download it from releases:**
+See the GitHub CLI section above. Never try `gh auth login` in a non-interactive
+shell — use the git credential store token instead.
+
+**`python` / `python3` stubs on Windows:**
+The system `python` and `python3` commands may resolve to Microsoft Store stubs
+that print an error instead of running. Always use the full path or set PATH
+explicitly. Copy `python.exe` → `python3.exe` so scripts that call `python3` work.
+
+**Co-Authored-By trailer is unwanted here:**
+Claude Code appends `Co-Authored-By: Claude ...` to commits by default.
+This user does NOT want it. Always omit it. Same for PR body footers.
