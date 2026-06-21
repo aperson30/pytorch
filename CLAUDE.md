@@ -89,7 +89,13 @@ unzip -o /tmp/gh.zip -d /tmp/gh_cli
 
 # GitHub CLI (`gh`)
 
-`gh` is not installed system-wide. Download it as above when needed.
+`gh` is installed system-wide (via winget). If `gh` is not found in PATH in a
+fresh shell, fall back to downloading it directly:
+```bash
+curl -sL "https://github.com/cli/cli/releases/download/v2.72.0/gh_2.72.0_windows_amd64.zip" -o /tmp/gh.zip
+unzip -o /tmp/gh.zip -d /tmp/gh_cli
+# binary: /tmp/gh_cli/bin/gh.exe
+```
 
 **Authentication:** Do not attempt interactive `gh auth login` (non-interactive shell).
 Instead retrieve the token from git's credential store and pass it via env var:
