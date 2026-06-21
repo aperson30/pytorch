@@ -204,6 +204,37 @@ Preserve `ghstack-source-id` and `Pull-Request` trailers when rewriting messages
 
 ---
 
+# Branch Hygiene (Multiple PRs in Flight)
+
+Each PR must live on its own branch rooted at `upstream/main`. Never start a
+feature branch from another feature branch — doing so silently pulls the parent
+branch's unmerged commits into the new PR.
+
+**Before creating any new feature branch:**
+```bash
+git log --oneline upstream/main..HEAD  # must be empty on the branch you're on
+```
+If it is not empty, you are on a feature branch. Switch somewhere neutral first:
+```bash
+git fetch upstream
+git checkout -b fix/my-new-thing upstream/main
+git update-index --skip-worktree CLAUDE.md
+```
+
+**Before opening a PR, verify the commit count is exactly what you expect:**
+```bash
+gh pr create --dry-run ...   # not available, so instead:
+git log --oneline upstream/main..HEAD  # should list only YOUR commits for this PR
+```
+
+If a PR accidentally contains commits from another branch, the fix is:
+1. Create a clean branch off `upstream/main` and cherry-pick only the intended commit(s).
+2. Force-push the clean branch onto the PR's head branch:
+   `git push --force origin clean-branch:pr-head-branch`
+   (GitHub does not allow changing a PR's head branch after creation.)
+
+---
+
 # ghstack Workflow
 
 ghstack commits follow a different workflow than the conventional branch/PR flow.
@@ -365,3 +396,10 @@ Switching branches resets CLAUDE.md on disk to that branch's version, even with
 skip-worktree set. The simplest rule: always edit CLAUDE.md only while on `main`.
 After any branch switch, restore the latest content with:
 `git show main:CLAUDE.md > CLAUDE.md`
+
+**Feature branches created from another feature branch pollute PRs:**
+If a feature branch (e.g. `dynamo/fix`) is checked out when you run
+`git checkout -b new-fix`, the new branch inherits all unmerged commits from the
+parent. The resulting PR will contain those extra commits. Always create new
+branches from `upstream/main`, not from whatever happens to be checked out.
+See the Branch Hygiene section above for the checklist.
