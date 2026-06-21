@@ -359,3 +359,9 @@ explicitly. Copy `python.exe` → `python3.exe` so scripts that call `python3` w
 **Co-Authored-By trailer is unwanted here:**
 Claude Code appends `Co-Authored-By: Claude ...` to commits by default.
 This user does NOT want it. Always omit it. Same for PR body footers.
+
+**Updating CLAUDE.md across branches requires care:**
+Switching branches resets CLAUDE.md on disk to that branch's version, even with
+skip-worktree set. The simplest rule: always edit CLAUDE.md only while on `main`.
+After any branch switch, restore the latest content with:
+`git show main:CLAUDE.md > CLAUDE.md`
